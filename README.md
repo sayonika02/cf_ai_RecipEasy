@@ -1,4 +1,4 @@
-# RecipEasy — Cloudflare AI Project
+# RecipEasy - Cloudflare AI Project
 
 **RecipEasy** is a friendly AI-powered student chef assistant that turns budget pantry items into quick, low effort dishes.  
 Built entirely on **Cloudflare Workers AI**, it helps students discover healthy, affordable recipes using ingredients they already have. This helps students think less about what to eat and use all their brain power in the academic hustle.
