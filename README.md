@@ -8,6 +8,9 @@ Built entirely on **Cloudflare Workers AI**, it helps students discover healthy,
 - Memory powered by **Durable Objects** (remembers last 3 ingredient sets)  
 - Runs fully serverless on Cloudflare’s global edge network  
 - Simple, minimal HTML UI for instant results
+<img width="650" height="632" alt="image" src="https://github.com/user-attachments/assets/010deb9c-9a85-4901-bd85-945303b6b58c" />
+
+<img width="628" height="653" alt="image" src="https://github.com/user-attachments/assets/5377c5c8-aa2d-4c56-a36a-b4ccc198095c" />
 
 ## Tech Stack
 - Cloudflare Workers AI  
