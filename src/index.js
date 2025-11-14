@@ -1,68 +1,71 @@
 import { DurableObject } from "cloudflare:workers";
 
-/**
- * Welcome to Cloudflare Workers! This is your first Durable Objects application.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your Durable Object in action
- * - Run `npm run deploy` to publish your application
- *
- * Learn more at https://developers.cloudflare.com/durable-objects
- */
+export class RecipeMemory extends DurableObject {
+  constructor(state, env) {
+    super(state, env);
+    this.state = state;
+    this.env = env;
+  }
 
-/**
- * Env provides a mechanism to reference bindings declared in wrangler.jsonc within JavaScript
- *
- * @typedef {Object} Env
- * @property {DurableObjectNamespace} MY_DURABLE_OBJECT - The Durable Object namespace binding
- */
+  async getHistory() {
+    return (await this.state.storage.get("history")) || [];
+  }
 
-/** A Durable Object's behavior is defined in an exported Javascript class */
-export class MyDurableObject extends DurableObject {
-	/**
-	 * The constructor is invoked once upon creation of the Durable Object, i.e. the first call to
-	 * 	`DurableObjectStub::get` for a given identifier (no-op constructors can be omitted)
-	 *
-	 * @param {DurableObjectState} ctx - The interface for interacting with Durable Object state
-	 * @param {Env} env - The interface to reference bindings declared in wrangler.jsonc
-	 */
-	constructor(ctx, env) {
-		super(ctx, env);
-	}
+  async addIngredients(items) {
+    let history = await this.getHistory();
+    history.push(items.join(", "));
+    if (history.length > 3) history = history.slice(-3);
+    await this.state.storage.put("history", history);
+    return history;
+  }
 
-	/**
-	 * The Durable Object exposes an RPC method sayHello which will be invoked when when a Durable
-	 *  Object instance receives a request from a Worker via the same method invocation on the stub
-	 *
-	 * @param {string} name - The name provided to a Durable Object instance from a Worker
-	 * @returns {Promise<string>} The greeting to be sent back to the Worker
-	 */
-	async sayHello(name) {
-		return `Hello, ${name}!`;
-	}
+  async fetch(req) {
+  const url = new URL(req.url);
+
+  if (req.method === "POST" && url.pathname === "/add") {
+    const { items } = await req.json();
+    const history = await this.addIngredients(items);
+    return Response.json(history);
+  }
+
+  if (url.pathname === "/history") {
+    return Response.json({ history: await this.getHistory() });
+  }
+
+  return new Response("OK");
+}
+
 }
 
 export default {
-	/**
-	 * This is the standard fetch handler for a Cloudflare Worker
-	 *
-	 * @param {Request} request - The request submitted to the Worker from the client
-	 * @param {Env} env - The interface to reference bindings declared in wrangler.jsonc
-	 * @param {ExecutionContext} ctx - The execution context of the Worker
-	 * @returns {Promise<Response>} The response to be sent back to the client
-	 */
-	async fetch(request, env, ctx) {
-		// Create a stub to open a communication channel with the Durable Object
-		// instance named "foo".
-		//
-		// Requests from all Workers to the Durable Object instance named "foo"
-		// will go to a single remote Durable Object instance.
-		const stub = env.MY_DURABLE_OBJECT.getByName("foo");
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
 
-		// Call the `sayHello()` RPC method on the stub to invoke the method on
-		// the remote Durable Object instance.
-		const greeting = await stub.sayHello("world");
+    //handle API POST for recipe suggestions
+    if (request.method === "POST" && url.pathname === "/api") {
+      const { items } = await request.json();
+      const id = env.SESSION.idFromName("global");
+      const obj = env.SESSION.get(id);
+      //use fetch() to call the Durable Object
+      const response = await obj.fetch("https://dummy/add", {
+        method: "POST",
+        body: JSON.stringify({ items }),
+      });
+      const history = await response.json();
 
-		return new Response(greeting);
-	},
+
+      const prompt = `You are Recipeasy, a friendly student chef assistant.
+      Suggest 3 quick, healthy, budget-friendly dishes using only: ${items.join(", ")}.
+      Each recipe should be under 2 sentences.`;
+
+      const aiResponse = await env.AI.run("@cf/meta/llama-3.1-8b-instruct", {
+        messages: [{ role: "user", content: prompt }],
+      });
+
+      return Response.json({ reply: aiResponse.response, history });
+    }
+
+    return env.ASSETS.fetch(request);
+  },
 };
+

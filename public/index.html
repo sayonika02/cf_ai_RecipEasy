@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RecipEasy 🍳</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 40px auto; }
+    textarea { width: 100%; height: 80px; margin-top: 8px; }
+    button { padding: 10px 20px; margin-top: 10px; cursor: pointer; }
+    pre { white-space: pre-wrap; background: #f6f6f6; padding: 15px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>RecipEasy 🍅🥚🍞</h1>
+  <p>Enter ingredients separated by commas:</p>
+  <textarea id="input"></textarea>
+  <br />
+  <button onclick="getRecipes()">Get Recipes</button>
+  <h2>Results</h2>
+  <pre id="output"></pre>
+
+  <script>
+    async function getRecipes() {
+      const raw = document.getElementById("input").value;
+      const items = raw.split(",").map(x => x.trim()).filter(Boolean);
+      const output = document.getElementById("output");
+      output.textContent = "Cooking up ideas...";
+
+      try {
+        const res = await fetch("/api", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items }),
+        });
+
+        if (!res.ok) throw new Error("API error: " + res.status);
+        const data = await res.json();
+
+        output.textContent = data.reply || "No recipes found.";
+      } catch (err) {
+        console.error(err);
+        output.textContent = "Oops! Something went wrong. Try again.";
+      }
+    }
+  </script>
+</body>
+</html>

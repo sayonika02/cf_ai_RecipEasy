@@ -1,0 +1,19 @@
+name = "recipeasy"
+main = "src/index.js"
+compatibility_date = "2025-11-14"
+
+[ai]
+binding = "AI"
+remote = true
+
+[[durable_objects.bindings]]
+name = "SESSION"
+class_name = "RecipeMemory"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RecipeMemory"]
+
+[assets]
+binding = "ASSETS"
+directory = "public"
